@@ -120,6 +120,7 @@ const PAL=['#4caf50','#2196f3','#9c27b0','#00bcd4','#ff9800','#e91e63','#795548'
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DLBL=['','Mon','','Wed','','Fri',''];
 let C={},rows=[],hc={};
+const localDate=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const $=id=>document.getElementById(id);
 const show=(id,d)=>{$(id).style.display=d||'block';};
 const hide=id=>{$(id).style.display='none';};
@@ -169,8 +170,8 @@ function streak(data){
   if(!days.length)return{cur:0,max:0};
   let max=1,run=1;
   for(let i=1;i<days.length;i++){const diff=(new Date(days[i])-new Date(days[i-1]))/86400000;run=diff===1?run+1:1;max=Math.max(max,run);}
-  const today=new Date().toISOString().slice(0,10);
-  const yest=new Date(Date.now()-864e5).toISOString().slice(0,10);
+  const today=localDate(new Date());
+  const yest=localDate(new Date(Date.now()-864e5));
   const last=days[days.length-1];
   let cur=0;
   if(last===today||last===yest){cur=1;for(let i=days.length-2;i>=0;i--){if((new Date(days[i+1])-new Date(days[i]))/86400000===1)cur++;else break;}}
@@ -209,7 +210,7 @@ function buildGrid(){
     const col=[];
     for(let r=0;r<7;r++){
       const d=new Date(yr,0,1 + c*7+r - dow);
-      const iso=d.toISOString().slice(0,10);
+      const iso=localDate(d);
       col.push({iso,out:d.getFullYear()!==yr,fut:d>today,done:done.has(iso)});
     }
     cols.push(col);
@@ -228,7 +229,7 @@ function buildGrid(){
   h+='<div style="display:flex;gap:3px;margin-bottom:4px;padding-left:26px">';
   cols.forEach((_,ci)=>{
     const m=Object.keys(mpos).find(k=>+mpos[k]===ci);
-    h+=`<div style="width:11px;font-size:10px;color:#555;white-space:nowrap;overflow:visible">${m!==undefined?MON[+m]:''}</div>`;
+    h+=`<div style="width:14px;font-size:10px;color:#555;white-space:nowrap;overflow:visible">${m!==undefined?MON[+m]:''}</div>`;
   });
   h+='</div>';
 
@@ -236,7 +237,7 @@ function buildGrid(){
   h+='<div style="display:flex;gap:0">';
   // day labels
   h+='<div style="display:flex;flex-direction:column;gap:3px;margin-right:4px;flex-shrink:0">';
-  DLBL.forEach(d=>h+=`<div style="font-size:10px;color:#555;height:11px;line-height:11px;width:22px;text-align:right">${d}</div>`);
+  DLBL.forEach(d=>h+=`<div style="font-size:10px;color:#555;height:14px;line-height:14px;width:22px;text-align:right">${d}</div>`);
   h+='</div>';
   // cells
   h+='<div style="display:flex;gap:3px">';
@@ -245,7 +246,7 @@ function buildGrid(){
     col.forEach(cell=>{
       const bg=cell.out||cell.fut?'transparent':cell.done?'#2ea44f':'#1e2a22';
       const title=cell.out||cell.fut?'':cell.iso+' — '+(cell.done?'✓ Выполнено':'Не выполнено');
-      h+=`<div style="width:11px;height:11px;border-radius:2px;background:${bg};flex-shrink:0;cursor:default" data-t="${title}" onmouseenter="showTip(event,this)" onmouseleave="hideTip()"></div>`;
+      h+=`<div style="width:14px;height:14px;border-radius:2px;background:${bg};flex-shrink:0;cursor:default" data-t="${title}" onmouseenter="showTip(event,this)" onmouseleave="hideTip()"></div>`;
     });
     h+='</div>';
   });
