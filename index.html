@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Habit Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#191919;color:#e8e8e8;min-height:100vh;padding:20px;font-size:14px}
+.setup{max-width:480px;margin:60px auto;background:#252525;border-radius:12px;padding:28px;border:1px solid #333}
+.setup h2{font-size:18px;font-weight:600;margin-bottom:6px;color:#fff}
+.setup p{color:#888;font-size:13px;margin-bottom:20px;line-height:1.5}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:#888;margin-bottom:5px;font-weight:500;letter-spacing:.3px}
+.field input{width:100%;background:#1a1a1a;border:1px solid #383838;border-radius:7px;padding:9px 12px;color:#e8e8e8;font-size:13px;outline:none;transition:border-color .2s}
+.field input:focus{border-color:#4caf50}
+.btn{display:inline-block;background:#4caf50;color:#fff;border:none;border-radius:7px;padding:10px 22px;font-size:14px;font-weight:500;cursor:pointer;transition:background .2s;margin-top:6px}
+.btn:hover{background:#43a047}
+.btn-sm{background:#2a2a2a;color:#ccc;border:1px solid #383838;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;margin-left:8px}
+.btn-sm:hover{background:#333}
+.error{color:#ef5350;font-size:12px;margin-top:8px;padding:8px 12px;background:rgba(239,83,80,.1);border-radius:6px;display:none}
+
+.dashboard{display:none}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.top-bar h1{font-size:16px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px}
+.top-bar h1 span{font-size:18px}
+.refresh-btn{background:none;border:1px solid #383838;color:#888;border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;transition:all .2s}
+.refresh-btn:hover{border-color:#4caf50;color:#4caf50}
+
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+@media(max-width:600px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#252525;border-radius:10px;padding:14px 16px;border:1px solid #2e2e2e;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent,#4caf50)}
+.stat-label{font-size:11px;color:#666;font-weight:500;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.stat-value{font-size:26px;font-weight:700;line-height:1;color:var(--val-color,#fff)}
+.stat-icon{position:absolute;top:12px;right:14px;font-size:18px;opacity:.4}
+
+.section{background:#252525;border-radius:10px;border:1px solid #2e2e2e;margin-bottom:16px;overflow:hidden}
+.section-header{padding:14px 18px;border-bottom:1px solid #2a2a2a;display:flex;align-items:center;justify-content:space-between}
+.section-title{font-size:14px;font-weight:600;color:#e0e0e0}
+.section-sub{font-size:12px;color:#666;margin-top:2px}
+
+.habit-select{background:#1e1e1e;border:1px solid #383838;border-radius:6px;padding:5px 10px;color:#ccc;font-size:12px;outline:none;cursor:pointer}
+.habit-select:focus{border-color:#4caf50}
+
+.streak-grid{padding:16px 18px;overflow-x:auto}
+.month-labels{display:flex;gap:0;margin-bottom:4px;padding-left:28px}
+.month-label{font-size:10px;color:#555;flex:1;min-width:0;white-space:nowrap}
+.grid-row{display:flex;align-items:center;gap:0;margin-bottom:3px}
+.day-label{font-size:10px;color:#555;width:24px;text-align:right;padding-right:4px;flex-shrink:0}
+.grid-cells{display:flex;gap:3px;flex:1}
+.cell{width:13px;height:13px;border-radius:2px;flex-shrink:0;cursor:pointer;transition:opacity .15s}
+.cell:hover{opacity:.7}
+.cell.empty{background:#1e2221}
+.cell.done{background:#216e39}
+.cell.done-1{background:#216e39}
+.cell.done-2{background:#30a14e}
+.cell.done-3{background:#40c463}
+.cell.done-4{background:#9be9a8}
+.cell.future{background:transparent}
+
+.donut-section{padding:16px 18px;display:flex;align-items:center;gap:24px}
+.donut-wrap{position:relative;width:100px;height:100px;flex-shrink:0}
+.donut-wrap svg{width:100%;height:100%}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.donut-pct{font-size:16px;font-weight:700;color:#fff}
+.donut-pct-label{font-size:10px;color:#666}
+.legend{flex:1}
+.legend-item{display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;color:#ccc}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.legend-pct{color:#666;font-size:11px}
+
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;gap:12px;color:#555;font-size:13px}
+.spinner{width:28px;height:28px;border:2px solid #333;border-top-color:#4caf50;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tooltip{position:fixed;background:#111;color:#e8e8e8;font-size:11px;padding:5px 9px;border-radius:5px;pointer-events:none;display:none;z-index:999;border:1px solid #333}
+</style>
+</head>
+<body>
+
+<div class="setup" id="setup">
+  <h2>📊 Habit Tracker Widget</h2>
+  <p>Connect your Notion database to display live habit stats. Your credentials are stored only in this browser tab (URL params).</p>
+  <div class="field">
+    <label>NOTION INTEGRATION TOKEN</label>
+    <input type="password" id="inp-token" placeholder="secret_xxxxxxxxxxxxxxx" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>DATABASE ID</label>
+    <input type="text" id="inp-db" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+  </div>
+  <div class="field">
+    <label>HABIT COLUMN NAME</label>
+    <input type="text" id="inp-habit-col" placeholder="Habit" value="Habit">
+  </div>
+  <div class="field">
+    <label>COMPLETED COLUMN NAME</label>
+    <input type="text" id="inp-done-col" placeholder="Completed" value="Completed">
+  </div>
+  <div class="field">
+    <label>DATE COLUMN NAME</label>
+    <input type="text" id="inp-date-col" placeholder="Date" value="Date">
+  </div>
+  <div class="field">
+    <label>CATEGORY COLUMN NAME (optional)</label>
+    <input type="text" id="inp-cat-col" placeholder="Category" value="Category">
+  </div>
+  <button class="btn" onclick="saveAndLoad()">Connect →</button>
+  <div class="error" id="setup-error"></div>
+  <p style="font-size:11px;color:#555;margin-top:16px;line-height:1.6">
+    How to get Database ID: open the database in Notion → copy URL → the 32-char string before <code style="color:#888">?v=</code> is the ID.<br>
+    Don't forget to share the database with your integration.
+  </p>
+</div>
+
+<div class="dashboard" id="dashboard">
+  <div class="top-bar">
+    <h1><span>📚</span> Habit Tracker</h1>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="last-updated" style="font-size:11px;color:#555"></span>
+      <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+      <button class="btn-sm" onclick="resetSetup()">Settings</button>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card" style="--accent:#4caf50">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-label">Active Habits</div>
+      <div class="stat-value" id="stat-habits" style="--val-color:#e8e8e8">—</div>
+    </div>
+    <div class="stat-card" style="--accent:#ef5350">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Completion Rate</div>
+      <div class="stat-value" id="stat-rate" style="--val-color:#ef5350">—</div>
+    </div>
+    <div class="stat-card" style="--accent:#ff7043">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-label">Current Streak</div>
+      <div class="stat-value" id="stat-streak" style="--val-color:#ff7043">—</div>
+    </div>
+    <div class="stat-card" style="--accent:#4caf50">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-label">Longest Streak</div>
+      <div class="stat-value" id="stat-longest" style="--val-color:#4caf50">—</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:16px">
+    <div>
+      <div class="section">
+        <div class="section-header">
+          <div>
+            <div class="section-title" id="streak-title">Streak Grid</div>
+            <div class="section-sub" id="streak-sub"></div>
+          </div>
+          <select class="habit-select" id="habit-select" onchange="renderStreakGrid()"></select>
+        </div>
+        <div class="streak-grid" id="streak-container"></div>
+      </div>
+    </div>
+    <div>
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Completion by Habit</div>
+        </div>
+        <div class="donut-section">
+          <div class="donut-wrap">
+            <svg viewBox="0 0 36 36" id="donut-svg"></svg>
+            <div class="donut-center">
+              <div class="donut-pct" id="donut-pct">0%</div>
+              <div class="donut-pct-label">done</div>
+            </div>
+          </div>
+          <div class="legend" id="donut-legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="loading" id="loading" style="display:none">
+  <div class="spinner"></div>
+  <span>Loading from Notion…</span>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const PROXY = 'https://corsproxy.io/?url=';
+const NOTION_API = 'https://api.notion.com/v1';
+const NOTION_VER = '2022-06-28';
+const COLORS = ['#4caf50','#2196f3','#9c27b0','#00bcd4','#ff9800','#e91e63','#795548','#607d8b'];
+
+let cfg = {};
+let allEntries = [];
+let habitColors = {};
+
+function showEl(id){document.getElementById(id).style.display='';}
+function hideEl(id){document.getElementById(id).style.display='none';}
+
+function saveAndLoad(){
+  const token = document.getElementById('inp-token').value.trim();
+  const db = document.getElementById('inp-db').value.trim().replace(/-/g,'');
+  if(!token||!db){showError('setup-error','Token and Database ID are required.');return;}
+  cfg={
+    token,db,
+    habitCol:document.getElementById('inp-habit-col').value.trim()||'Habit',
+    doneCol:document.getElementById('inp-done-col').value.trim()||'Completed',
+    dateCol:document.getElementById('inp-date-col').value.trim()||'Date',
+    catCol:document.getElementById('inp-cat-col').value.trim()||'Category'
+  };
+  const params=new URLSearchParams({t:btoa(token),d:db,hc:cfg.habitCol,dc:cfg.doneCol,dtc:cfg.dateCol,cc:cfg.catCol});
+  history.replaceState(null,'','?'+params.toString());
+  hideEl('setup');
+  loadData();
+}
+
+function resetSetup(){
+  history.replaceState(null,'','?');
+  hideEl('dashboard');
+  showEl('setup');
+}
+
+function showError(id,msg){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.style.display='block';
+}
+
+async function notionFetch(path,body=null){
+  const url=PROXY+encodeURIComponent(NOTION_API+path);
+  const opts={
+    method:body?'POST':'GET',
+    headers:{
+      'Authorization':'Bearer '+cfg.token,
+      'Notion-Version':NOTION_VER,
+      'Content-Type':'application/json'
+    }
+  };
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  if(!r.ok){const t=await r.text();throw new Error('Notion API '+r.status+': '+t);}
+  return r.json();
+}
+
+async function fetchAllPages(){
+  let results=[],cursor=undefined;
+  do{
+    const body={page_size:100};
+    if(cursor)body.start_cursor=cursor;
+    const data=await notionFetch('/databases/'+cfg.db+'/query',body);
+    results=results.concat(data.results);
+    cursor=data.has_more?data.next_cursor:null;
+  }while(cursor);
+  return results;
+}
+
+function getTextProp(page,col){
+  const props=page.properties;
+  const p=findProp(props,col);
+  if(!p)return '';
+  if(p.type==='title')return p.title.map(t=>t.plain_text).join('');
+  if(p.type==='rich_text')return p.rich_text.map(t=>t.plain_text).join('');
+  if(p.type==='select')return p.select?.name||'';
+  if(p.type==='multi_select')return p.multi_select.map(s=>s.name).join(', ');
+  return '';
+}
+
+function getCheckProp(page,col){
+  const p=findProp(page.properties,col);
+  if(!p)return false;
+  if(p.type==='checkbox')return p.checkbox===true;
+  return false;
+}
+
+function getDateProp(page,col){
+  const p=findProp(page.properties,col);
+  if(!p)return null;
+  if(p.type==='date')return p.date?.start||null;
+  if(p.type==='created_time')return p.created_time?.slice(0,10)||null;
+  if(p.type==='last_edited_time')return p.last_edited_time?.slice(0,10)||null;
+  return null;
+}
+
+function findProp(props,name){
+  if(props[name])return props[name];
+  const lower=name.toLowerCase();
+  for(const k of Object.keys(props)){if(k.toLowerCase()===lower)return props[k];}
+  return null;
+}
+
+async function loadData(){
+  hideEl('setup');hideEl('dashboard');
+  showEl('loading');
+  try{
+    const pages=await fetchAllPages();
+    allEntries=pages.map(p=>({
+      date:getDateProp(p,cfg.dateCol),
+      habit:getTextProp(p,cfg.habitCol),
+      done:getCheckProp(p,cfg.doneCol),
+      cat:getTextProp(p,cfg.catCol)
+    })).filter(e=>e.date&&e.habit);
+
+    const habits=[...new Set(allEntries.map(e=>e.habit))].filter(Boolean);
+    habits.forEach((h,i)=>habitColors[h]=COLORS[i%COLORS.length]);
+
+    renderStats();
+    renderHabitSelect(habits);
+    renderStreakGrid();
+    renderDonut();
+
+    document.getElementById('last-updated').textContent='Updated '+new Date().toLocaleTimeString();
+    hideEl('loading');
+    showEl('dashboard');
+  }catch(e){
+    hideEl('loading');
+    showEl('setup');
+    showError('setup-error','Error: '+e.message);
+  }
+}
+
+function renderStats(){
+  const habits=[...new Set(allEntries.map(e=>e.habit))];
+  document.getElementById('stat-habits').textContent=habits.length;
+
+  const total=allEntries.length;
+  const done=allEntries.filter(e=>e.done).length;
+  const rate=total?Math.round(done/total*100):0;
+  document.getElementById('stat-rate').textContent=rate+'%';
+
+  const {cur,longest}=calcStreaks(allEntries);
+  document.getElementById('stat-streak').textContent=cur;
+  document.getElementById('stat-longest').textContent=longest;
+}
+
+function calcStreaks(entries,habitFilter=null){
+  let filtered=entries.filter(e=>e.done);
+  if(habitFilter)filtered=filtered.filter(e=>e.habit===habitFilter);
+  const days=[...new Set(filtered.map(e=>e.date))].sort();
+  if(!days.length)return{cur:0,longest:0};
+  const today=new Date().toISOString().slice(0,10);
+  const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  let cur=0,longest=0,run=1;
+  for(let i=1;i<days.length;i++){
+    const d=new Date(days[i]),p=new Date(days[i-1]);
+    const diff=(d-p)/86400000;
+    if(diff===1){run++;}else{longest=Math.max(longest,run);run=1;}
+  }
+  longest=Math.max(longest,run);
+  const last=days[days.length-1];
+  if(last===today||last===yesterday){
+    let r=1;
+    for(let i=days.length-2;i>=0;i--){
+      const d=new Date(days[i+1]),p=new Date(days[i]);
+      if((d-p)/86400000===1){r++;}else break;
+    }
+    cur=r;
+  }
+  return{cur,longest};
+}
+
+function renderHabitSelect(habits){
+  const sel=document.getElementById('habit-select');
+  sel.innerHTML='<option value="">All habits</option>'+habits.map(h=>`<option value="${h}">${h}</option>`).join('');
+}
+
+function renderStreakGrid(){
+  const sel=document.getElementById('habit-select').value;
+  const entries=sel?allEntries.filter(e=>e.habit===sel):allEntries;
+  const {cur,longest}=calcStreaks(entries);
+  document.getElementById('streak-title').textContent=(sel||'All Habits')+' — Streak Grid';
+  document.getElementById('streak-sub').textContent='Current streak: '+cur+' days';
+
+  const doneSet=new Set(entries.filter(e=>e.done).map(e=>e.date));
+  const today=new Date();
+  const year=today.getFullYear();
+  const jan1=new Date(year,0,1);
+  const startDow=jan1.getDay();
+  const totalCells=371;
+  const cells=[];
+  for(let i=0;i<totalCells;i++){
+    const d=new Date(jan1);
+    d.setDate(d.getDate()+(i-startDow));
+    const iso=d.toISOString().slice(0,10);
+    cells.push({date:iso,inYear:d.getFullYear()===year,future:d>today,done:doneSet.has(iso)});
+  }
+
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DAYS=['','Mon','','Wed','','Fri',''];
+  const container=document.getElementById('streak-container');
+  const cols=Math.ceil(totalCells/7);
+
+  let html='<div style="display:flex;gap:3px;align-items:flex-start">';
+  html+='<div style="display:flex;flex-direction:column;gap:3px;margin-top:20px">';
+  for(let r=0;r<7;r++)html+=`<div style="font-size:10px;color:#555;height:13px;line-height:13px;width:24px;text-align:right;padding-right:4px">${DAYS[r]}</div>`;
+  html+='</div><div style="flex:1;overflow-x:auto"><div style="min-width:${cols*16}px">';
+
+  let monthHtml='<div style="display:flex;gap:3px;margin-bottom:4px"><div style="width:0"></div>';
+  const monthPositions={};
+  for(let c=0;c<cols;c++){
+    const idx=c*7;
+    if(idx<cells.length){
+      const m=new Date(cells[idx].date).getMonth();
+      const y=new Date(cells[idx].date).getFullYear();
+      if(y===year&&monthPositions[m]===undefined)monthPositions[m]=c;
+    }
+  }
+  for(let c=0;c<cols;c++){
+    const m=Object.keys(monthPositions).find(k=>monthPositions[k]===c);
+    monthHtml+=`<div style="width:13px;font-size:10px;color:#555;overflow:hidden">${m!==undefined?MONTHS[m]:''}</div>`;
+  }
+  monthHtml+='</div>';
+  html+=monthHtml;
+
+  html+='<div style="display:flex;gap:3px">';
+  for(let c=0;c<cols;c++){
+    html+='<div style="display:flex;flex-direction:column;gap:3px">';
+    for(let r=0;r<7;r++){
+      const cell=cells[c*7+r];
+      if(!cell){html+='<div style="width:13px;height:13px"></div>';continue;}
+      if(!cell.inYear||cell.future){html+='<div style="width:13px;height:13px;border-radius:2px;background:transparent"></div>';continue;}
+      const cls=cell.done?'#30a14e':'#1e2a22';
+      html+=`<div style="width:13px;height:13px;border-radius:2px;background:${cls};cursor:pointer" data-date="${cell.date}" data-done="${cell.done}" onmouseenter="showTip(event,this)" onmouseleave="hideTip()"></div>`;
+    }
+    html+='</div>';
+  }
+  html+='</div></div></div></div>';
+  container.innerHTML=html;
+}
+
+function renderDonut(){
+  const habitTotals={};
+  const habitDone={};
+  allEntries.forEach(e=>{
+    habitTotals[e.habit]=(habitTotals[e.habit]||0)+1;
+    if(e.done)habitDone[e.habit]=(habitDone[e.habit]||0)+1;
+  });
+  const habits=Object.keys(habitTotals);
+  const total=allEntries.length;
+  const totalDone=allEntries.filter(e=>e.done).length;
+  const overallPct=total?Math.round(totalDone/total*100):0;
+  document.getElementById('donut-pct').textContent=overallPct+'%';
+
+  const cx=18,cy=18,r=14,stroke=4;
+  const circ=2*Math.PI*r;
+  let offset=0;
+  let paths='';
+  habits.forEach(h=>{
+    const pct=(habitTotals[h]||0)/total;
+    const dashLen=circ*pct;
+    paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${habitColors[h]}" stroke-width="${stroke}" stroke-dasharray="${dashLen} ${circ-dashLen}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+    offset+=dashLen;
+  });
+  document.getElementById('donut-svg').innerHTML=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2a2a2a" stroke-width="${stroke}"/>${paths}`;
+
+  let legHtml='';
+  habits.forEach(h=>{
+    const pct=total?Math.round((habitTotals[h]||0)/total*100):0;
+    const donePct=habitTotals[h]?Math.round((habitDone[h]||0)/habitTotals[h]*100):0;
+    legHtml+=`<div class="legend-item"><div class="legend-dot" style="background:${habitColors[h]}"></div><div class="legend-name" title="${h}">${h}</div><div class="legend-pct">${donePct}%</div></div>`;
+  });
+  document.getElementById('donut-legend').innerHTML=legHtml;
+}
+
+function showTip(e,el){
+  const tip=document.getElementById('tooltip');
+  const date=el.dataset.date;
+  const done=el.dataset.done==='true';
+  tip.textContent=date+' — '+(done?'✓ Completed':'Not completed');
+  tip.style.display='block';
+  tip.style.left=(e.clientX+12)+'px';
+  tip.style.top=(e.clientY-28)+'px';
+}
+function hideTip(){document.getElementById('tooltip').style.display='none';}
+
+(function init(){
+  const p=new URLSearchParams(location.search);
+  if(p.get('t')&&p.get('d')){
+    try{cfg.token=atob(p.get('t'));}catch(e){showEl('setup');return;}
+    cfg.db=p.get('d');
+    cfg.habitCol=p.get('hc')||'Habit';
+    cfg.doneCol=p.get('dc')||'Completed';
+    cfg.dateCol=p.get('dtc')||'Date';
+    cfg.catCol=p.get('cc')||'Category';
+    document.getElementById('inp-token').value=cfg.token;
+    document.getElementById('inp-db').value=cfg.db;
+    document.getElementById('inp-habit-col').value=cfg.habitCol;
+    document.getElementById('inp-done-col').value=cfg.doneCol;
+    document.getElementById('inp-date-col').value=cfg.dateCol;
+    document.getElementById('inp-cat-col').value=cfg.catCol;
+    loadData();
+  }else{
+    showEl('setup');
+  }
+})();
+</script>
+</body>
+</html>
