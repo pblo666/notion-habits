@@ -165,26 +165,47 @@ async function loadData(){
   }catch(e){hide('loading');show('setup');showErr('Ошибка: '+e.message);}
 }
 
+function dayNum(iso){const[y,m,d]=iso.split('-').map(Number);return Math.floor(Date.UTC(y,m-1,d)/86400000);}
+
 function streak(data){
   const days=[...new Set(data.filter(r=>r.done).map(r=>r.date))].sort();
   if(!days.length)return{cur:0,max:0};
   let max=1,run=1;
-  for(let i=1;i<days.length;i++){const diff=(new Date(days[i])-new Date(days[i-1]))/86400000;run=diff===1?run+1:1;max=Math.max(max,run);}
-  const today=localDate(new Date());
-  const yest=localDate(new Date(Date.now()-864e5));
-  const last=days[days.length-1];
+  for(let i=1;i<days.length;i++){
+    const diff=dayNum(days[i])-dayNum(days[i-1]);
+    if(diff===1){run++;if(run>max)max=run;}
+    else run=1;
+  }
+  const todayN=dayNum(localDate(new Date()));
+  const lastN=dayNum(days[days.length-1]);
   let cur=0;
-  if(last===today||last===yest){cur=1;for(let i=days.length-2;i>=0;i--){if((new Date(days[i+1])-new Date(days[i]))/86400000===1)cur++;else break;}}
+  if(lastN===todayN||lastN===todayN-1){
+    cur=1;
+    for(let i=days.length-2;i>=0;i--){
+      if(dayNum(days[i+1])-dayNum(days[i])===1)cur++;
+      else break;
+    }
+  }
   return{cur,max};
 }
 
 function buildStats(){
   const habs=[...new Set(rows.map(r=>r.hab))];
   $('v-h').textContent=habs.length;
-  $('v-r').textContent=(rows.length?Math.round(rows.filter(r=>r.done).length/rows.length*100):0)+'%';
+  const allDates=[...new Set(rows.map(r=>r.date))].sort();
+  let rate=0;
+  if(allDates.length&&habs.length){
+    const firstN=dayNum(allDates[0]),todayN=dayNum(localDate(new Date()));
+    const totalDays=todayN-firstN+1;
+    const completed=rows.filter(r=>r.done).length;
+    const possible=habs.length*totalDays;
+    rate=Math.round(completed/possible*100);
+  }
+  $('v-r').textContent=rate+'%';
   const{cur,max}=streak(rows);
   $('v-c').textContent=cur;$('v-l').textContent=max;
 }
+
 
 function buildSel(habs){
   $('hsel').innerHTML='<option value="">All habits</option>'+habs.map(h=>`<option value="${h}">${h}</option>`).join('');
